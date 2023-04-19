@@ -1,6 +1,7 @@
 package com.hcmute.backendtoeicapp.model;
 
 import com.google.gson.annotations.SerializedName;
+import com.hcmute.backendtoeicapp.entities.ToeicQuestionGroupEntity;
 
 import java.io.File;
 import java.io.Serializable;
@@ -16,6 +17,10 @@ public class ToeicQuestionGroup implements Serializable {
 
     public ToeicQuestionGroup() {
 
+    }
+    public ToeicQuestionGroup(ToeicQuestionGroupEntity toeicQuestionGroupEntity) {
+        this.type = toeicQuestionGroupEntity.getType();
+        this.audio = toeicQuestionGroupEntity.getAudio();
     }
 
     public String getType() {

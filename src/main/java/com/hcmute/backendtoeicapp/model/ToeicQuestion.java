@@ -1,6 +1,7 @@
 package com.hcmute.backendtoeicapp.model;
 
 import com.google.gson.annotations.SerializedName;
+import com.hcmute.backendtoeicapp.entities.ToeicQuestionEntity;
 
 import java.io.File;
 import java.io.Serializable;
@@ -17,6 +18,12 @@ public class ToeicQuestion implements Serializable {
 
     public ToeicQuestion() {
 
+    }
+    public ToeicQuestion(ToeicQuestionEntity toeicQuestionEntity) {
+        this.questionId = toeicQuestionEntity.getQuestionId();
+        this.question = toeicQuestionEntity.getQuestion();
+        this.correctAnswer = toeicQuestionEntity.getCorrectAnswer();
+        this.explain = toeicQuestionEntity.getExplain();
     }
 
     public Integer getQuestionId() {

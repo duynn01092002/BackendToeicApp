@@ -33,4 +33,9 @@ public class ToeicAppController {
         BaseResponse response = toeicAppService.getListPracticePartInfoByPartId(id);
         return response;
     }
+    @GetMapping("practice/part/{id}")
+    private BaseResponse getQuestionGroupAndQuestionByPartId(@PathVariable("id") Integer id) {
+        BaseResponse response = toeicAppService.getListQuestionGroupAndQuestionByPartId(id);
+        return response;
+    }
 }

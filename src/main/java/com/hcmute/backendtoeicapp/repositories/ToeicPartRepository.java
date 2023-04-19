@@ -13,4 +13,7 @@ public interface ToeicPartRepository extends JpaRepository<ToeicPartEntity, Inte
 
     @Query("SELECT COUNT(u) FROM ToeicQuestionEntity u WHERE u.toeicQuestionGroupEntity.toeicPartEntity.id = :id")
     Integer getNumOfQuestions(@Param("id") Integer id);
+
+    @Query("SELECT u FROM ToeicPartEntity u WHERE u.id=:id")
+    ToeicPartEntity findToeicPartEntityById(@Param("id") Integer id);
 }

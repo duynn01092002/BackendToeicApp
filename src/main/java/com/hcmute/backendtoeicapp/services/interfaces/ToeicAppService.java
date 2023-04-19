@@ -5,4 +5,6 @@ import com.hcmute.backendtoeicapp.base.SuccessfulResponse;
 
 public interface ToeicAppService {
     BaseResponse getListPracticePartInfoByPartId(Integer id);
+
+    BaseResponse getListQuestionGroupAndQuestionByPartId(Integer id);
 }

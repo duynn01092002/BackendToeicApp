@@ -1,5 +1,7 @@
 package com.hcmute.backendtoeicapp.model;
 
+import com.hcmute.backendtoeicapp.entities.ToeicAnswerChoiceEntity;
+
 import java.io.Serializable;
 
 public class ToeicAnswerChoice implements Serializable {
@@ -9,6 +11,11 @@ public class ToeicAnswerChoice implements Serializable {
 
     public ToeicAnswerChoice() {
 
+    }
+    public ToeicAnswerChoice(ToeicAnswerChoiceEntity toeicAnswerChoiceEntity) {
+        this.label = toeicAnswerChoiceEntity.getLabel();
+        this.content = toeicAnswerChoiceEntity.getContent();
+        this.explain = toeicAnswerChoiceEntity.getExplain();
     }
 
     public String getLabel() {

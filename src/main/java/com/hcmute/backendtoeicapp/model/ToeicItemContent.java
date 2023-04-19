@@ -1,5 +1,7 @@
 package com.hcmute.backendtoeicapp.model;
 
+import com.hcmute.backendtoeicapp.entities.ToeicItemContentEntity;
+
 import java.io.Serializable;
 
 public class ToeicItemContent implements Serializable {
@@ -9,7 +11,10 @@ public class ToeicItemContent implements Serializable {
     public ToeicItemContent() {
 
     }
-
+    public ToeicItemContent(ToeicItemContentEntity toeicItemContentEntity) {
+        this.type = toeicItemContentEntity.getType();
+        this.content = toeicItemContentEntity.getContent();
+    }
     public String getType() {
         return type;
     }
