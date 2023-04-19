@@ -1,21 +1,31 @@
 package com.hcmute.backendtoeicapp.services;
 
+import com.hcmute.backendtoeicapp.AppConfiguration;
 import com.hcmute.backendtoeicapp.base.BaseResponse;
 import com.hcmute.backendtoeicapp.base.ErrorResponse;
 import com.hcmute.backendtoeicapp.base.SuccessfulResponse;
 import com.hcmute.backendtoeicapp.dto.PracticePartInfoResponse;
 import com.hcmute.backendtoeicapp.entities.*;
-import com.hcmute.backendtoeicapp.model.ToeicAnswerChoice;
-import com.hcmute.backendtoeicapp.model.ToeicItemContent;
-import com.hcmute.backendtoeicapp.model.ToeicQuestion;
-import com.hcmute.backendtoeicapp.model.ToeicQuestionGroup;
+import com.hcmute.backendtoeicapp.model.*;
 import com.hcmute.backendtoeicapp.repositories.*;
 import com.hcmute.backendtoeicapp.services.interfaces.ToeicAppService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class ToeicAppServiceImpl implements ToeicAppService {
@@ -29,6 +39,9 @@ public class ToeicAppServiceImpl implements ToeicAppService {
     private ToeicItemContentRepository toeicItemContentRepository;
     @Autowired
     private ToeicAnswerChoiceRepository toeicAnswerChoiceRepository;
+
+    @Autowired
+    private AppConfiguration appConfiguration;
 
     @Override
     public BaseResponse getListPracticePartInfoByPartId(Integer id) {
@@ -90,5 +103,65 @@ public class ToeicAppServiceImpl implements ToeicAppService {
         response.setMessage("Lấy dữ liệu thành công");
         response.setData(questionGroups);
         return response;
+    }
+
+    private static final Pattern NON_LATIN = Pattern.compile("[^\\w-]");
+    private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
+
+    public static String toSlug(String input) {
+        String nowhitespace = WHITESPACE.matcher(input).replaceAll("-");
+        String normalized = Normalizer.normalize(nowhitespace, Normalizer.Form.NFD);
+        String slug = NON_LATIN.matcher(normalized).replaceAll("");
+        return slug.toLowerCase(Locale.ENGLISH);
+    }
+
+    private String joinQuestionNumberFromGroupQuestion(Integer toeicGroupId) {
+        final List<ToeicQuestionEntity> questions = this.toeicQuestionRepository.getListToeicQuestionByQuestionGroupId(toeicGroupId);
+        assert questions.size() > 0;
+
+        List<String> nums = questions.stream().map(question -> question.getQuestionId().toString()).toList();
+
+        return String.join("-", nums);
+    }
+
+    @Override
+    public byte[] downloadPartData(Integer partId) throws IOException {
+        if (partId < 1 || partId > 5 || !this.toeicPartRepository.existsById(partId)) {
+            return null;
+        }
+
+        final ToeicFullTestEntity toeicFullTest = this.toeicPartRepository.findById(partId).get().getToeicFullTestEntity();
+        final String slug = toSlug(toeicFullTest.getFullName());
+
+        final ByteArrayOutputStream inputStream = new ByteArrayOutputStream();
+        final ZipOutputStream zipOutputStream = new ZipOutputStream(inputStream);
+
+        for (ToeicQuestionGroupEntity toeicQuestionGroupEntity : this.toeicQuestionGroupRepository.getListToeicQuestionGroupByPartId(partId)) {
+
+            final String joinedQuestionNumbers = this.joinQuestionNumberFromGroupQuestion(toeicQuestionGroupEntity.getId());
+            final String inputFileNamePrrefix = Paths.get(
+                    this.appConfiguration.getToeicResourceDirectory(),
+                    slug + "-" + joinedQuestionNumbers
+            ).toString();
+
+            final List<String> suffixes = new ArrayList<>();
+            suffixes.add(".mp3");
+            if (partId == 1) {
+                suffixes.add(".png");
+            }
+
+            for (final String suffix : suffixes) {
+                final String inputFileName = inputFileNamePrrefix + suffix;
+                final String outputFileName = joinedQuestionNumbers + suffix;
+
+                File fileToZip = new File(inputFileName);
+                final ZipEntry zipEntry = new ZipEntry(outputFileName);
+                zipOutputStream.putNextEntry(zipEntry);
+                Files.copy(fileToZip.toPath(), zipOutputStream);
+            }
+        }
+
+        zipOutputStream.close();
+        return inputStream.toByteArray();
     }
 }
