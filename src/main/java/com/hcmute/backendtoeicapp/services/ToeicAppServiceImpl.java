@@ -1,5 +1,6 @@
 package com.hcmute.backendtoeicapp.services;
 
+import com.google.gson.Gson;
 import com.hcmute.backendtoeicapp.AppConfiguration;
 import com.hcmute.backendtoeicapp.base.BaseResponse;
 import com.hcmute.backendtoeicapp.base.ErrorResponse;
@@ -16,6 +17,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -67,15 +69,10 @@ public class ToeicAppServiceImpl implements ToeicAppService {
         response.setData(practicePartInfoResponseList);
         return response;
     }
-    @Override
-    public BaseResponse getListQuestionGroupAndQuestionByPartId(Integer id) {
-        if (this.toeicPartRepository.findToeicPartEntityById(id) == null) {
-            ErrorResponse response = new ErrorResponse();
-            response.setMessage("Không tồn tại part có id = " + id);
-            return response;
-        }
+
+    private List<ToeicQuestionGroup> getListQuestionGroups(Integer partId) {
         List<ToeicQuestionGroupEntity> toeicQuestionGroupEntityList =
-                this.toeicQuestionGroupRepository.getListToeicQuestionGroupByPartId(id);
+                this.toeicQuestionGroupRepository.getListToeicQuestionGroupByPartId(partId);
         List<ToeicQuestionGroup> questionGroups = new ArrayList<ToeicQuestionGroup>();
         for (ToeicQuestionGroupEntity entity : toeicQuestionGroupEntityList) {
             ToeicQuestionGroup model = new ToeicQuestionGroup();
@@ -99,6 +96,19 @@ public class ToeicAppServiceImpl implements ToeicAppService {
             model.setQuestions(questions);
             questionGroups.add(model);
         }
+        return questionGroups;
+    }
+
+    @Override
+    public BaseResponse getListQuestionGroupAndQuestionByPartId(Integer id) {
+        if (this.toeicPartRepository.findToeicPartEntityById(id) == null) {
+            ErrorResponse response = new ErrorResponse();
+            response.setMessage("Không tồn tại part có id = " + id);
+            return response;
+        }
+
+        List<ToeicQuestionGroup> questionGroups = this.getListQuestionGroups(id);
+
         SuccessfulResponse response = new SuccessfulResponse();
         response.setMessage("Lấy dữ liệu thành công");
         response.setData(questionGroups);
@@ -126,7 +136,7 @@ public class ToeicAppServiceImpl implements ToeicAppService {
 
     @Override
     public byte[] downloadPartData(Integer partId) throws IOException {
-        if (partId < 1 || partId > 5 || !this.toeicPartRepository.existsById(partId)) {
+        if (!this.toeicPartRepository.existsById(partId)) {
             return null;
         }
 
@@ -157,9 +167,17 @@ public class ToeicAppServiceImpl implements ToeicAppService {
                 File fileToZip = new File(inputFileName);
                 final ZipEntry zipEntry = new ZipEntry(outputFileName);
                 zipOutputStream.putNextEntry(zipEntry);
-                Files.copy(fileToZip.toPath(), zipOutputStream);
+
+                if (fileToZip.exists())
+                    Files.copy(fileToZip.toPath(), zipOutputStream);
             }
         }
+
+        ZipEntry configEntry = new ZipEntry("config.json");
+        zipOutputStream.putNextEntry(configEntry);
+        Gson gson = new Gson();
+        zipOutputStream.write(gson.toJson(this.getListQuestionGroups(partId)).getBytes(StandardCharsets.UTF_8));
+        zipOutputStream.closeEntry();
 
         zipOutputStream.close();
         return inputStream.toByteArray();
